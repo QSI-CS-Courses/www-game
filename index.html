@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WWW Bootcamp: Interactive Quiz Game with Supabase</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #10b981;
+            --accent: #f59e0b;
+            --dark: #1f2937;
+            --light: #f9fafb;
+            --text: #334155;
+            --border: #e5e7eb;
+            --code-bg: #0d1117;
+            --sql-keyword: #ff79c6;
+            --sql-string: #f1fa8c;
+            --sql-type: #8be9fd;
+            --sql-function: #50fa7b;
+            --sql-comment: #6272a4;
+            --sql-number: #bd93f9;
+            --sql-operator: #ff79c6;
+            --sql-punctuation: #f8f8f2;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* Presentation Container */
+        .presentation-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Slide Styles */
+        .slide {
+            width: 90%;
+            max-width: 1200px;
+            height: 80vh;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            padding: 3rem;
+            position: absolute;
+            opacity: 0;
+            transform: translateX(100px);
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: translateX(0);
+            z-index: 10;
+        }
+
+        .slide.prev {
+            transform: translateX(-100px);
+        }
+
+        /* Slide Header */
+        .slide-header {
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .slide-number {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .slide-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--dark);
+            line-height: 1.2;
+        }
+
+        .slide-subtitle {
+            font-size: 1.25rem;
+            color: var(--text);
+            margin-top: 0.5rem;
+        }
+
+        /* Navigation Controls */
+        .nav-controls {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+            z-index: 100;
+            background: white;
+            padding: 1rem;
+            border-radius: 50px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            font-size: 1.25rem;
+        }
+
+        .nav-btn:hover {
+            transform: scale(1.1);
+            background: var(--dark);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            z-index: 100;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.5s ease;
+        }
+
+        /* Table of Contents */
+        .toc-toggle {
+            position: fixed;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            z-index: 101;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .toc-toggle:hover {
+            transform: translateY(-50%) scale(1.1);
+            background: var(--primary);
+            color: white;
+        }
+
+        .toc-toggle.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .toc-sidebar {
+            position: fixed;
+            right: -400px;
+            top: 0;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 102;
+            overflow-y: auto;
+        }
+
+        .toc-sidebar.open {
+            right: 0;
+        }
+
+        .toc-header {
+            padding: 2rem;
+            background: var(--dark);
+            color: white;
+            position: relative;
+        }
+
+        .toc-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .toc-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .toc-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .toc-list {
+            padding: 1rem 0;
+        }
+
+        .toc-item {
+            padding: 1rem 2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .toc-item:hover {
+            background: var(--light);
+            border-left-color: var(--primary);
+        }
+
+        .toc-item.active {
+            background: rgba(59, 130, 246, 0.1);
+            border-left-color: var(--primary);
+            font-weight: 600;
+        }
+
+        .toc-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-size: 0.875rem;
+        }
+
+        /* Overlay for closing TOC */
+        .toc-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 101;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .toc-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* SQL Code Block Styling */
+        .sql-code {
+            background: var(--code-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            color: #e6edf3;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid #30363d;
+            white-space: pre;
+        }
+
+        .sql-keyword {
+            color: var(--sql-keyword);
+            font-weight: 500;
+        }
+
+        .sql-type {
+            color: var(--sql-type);
+            font-weight: 500;
+        }
+
+        .sql-string {
+            color: var(--sql-string);
+        }
+
+        .sql-number {
+            color: var(--sql-number);
+        }
+
+        .sql-function {
+            color: var(--sql-function);
+        }
+
+        .sql-comment {
+            color: var(--sql-comment);
+            font-style: italic;
+        }
+
+        .sql-operator {
+            color: var(--sql-operator);
+        }
+
+        .sql-punctuation {
+            color: var(--sql-punctuation);
+        }
+
+        /* Content Styles */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .feature-card {
+            background: var(--light);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .feature-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.1));
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .warning-box {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid var(--accent);
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .success-box {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid var(--secondary);
+            padding: 1rem 1.5rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .task-list {
+            list-style: none;
+            margin: 1.5rem 0;
+        }
+
+        .task-item {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            position: relative;
+            padding-left: 3rem;
+        }
+
+        .task-item::before {
+            content: '✓';
+            position: absolute;
+            left: 1rem;
+            top: 1.5rem;
+            width: 30px;
+            height: 30px;
+            background: var(--secondary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .task-title {
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .task-difficulty {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .difficulty-beginner {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--secondary);
+        }
+
+        .difficulty-intermediate {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent);
+        }
+
+        .difficulty-advanced {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+            margin: 2rem 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background: var(--border);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2.3rem;
+            top: 0.5rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary);
+        }
+
+        .timeline-day {
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .demo-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin: 1rem 0;
+        }
+
+        .demo-link:hover {
+            background: var(--dark);
+            transform: translateY(-2px);
+        }
+
+        /* Keyboard hint */
+        .keyboard-hint {
+            position: fixed;
+            bottom: 6rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            z-index: 99;
+        }
+
+        /* Scrollbar styling */
+        .slide::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .slide::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .slide::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        .slide::-webkit-scrollbar-thumb:hover {
+            background: var(--dark);
+        }
+
+        .sql-code::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .sql-code::-webkit-scrollbar-track {
+            background: #30363d;
+            border-radius: 10px;
+        }
+
+        .sql-code::-webkit-scrollbar-thumb {
+            background: #58a6ff;
+            border-radius: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .slide {
+                width: 95%;
+                height: 95vh;
+                padding: 2rem;
+            }
+
+            .slide-title {
+                font-size: 1.75rem;
+            }
+
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .toc-sidebar {
+                width: 100%;
+                right: -100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Progress Bar -->
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <!-- Presentation Container -->
+    <div class="presentation-container">
+        <!-- Slide 1: Title -->
+        <div class="slide active" data-slide="1">
+            <div class="slide-header">
+                <span class="slide-number">1/19</span>
+                <h1 class="slide-title">Interactive Quiz Game with Supabase</h1>
+                <p class="slide-subtitle">WWW Bootcamp Days 3-5</p>
+            </div>
+            
+            <div class="highlight-box">
+                <h2 style="font-size: 2rem; margin-bottom: 1rem;">Welcome to Quiz Game Project!</h2>
+                <p style="font-size: 1.25rem; margin-bottom: 1.5rem;">Build a full-stack web application with HTML, CSS, JavaScript, and Supabase database</p>
+                <a href="https://quiz-game-sigma-olive.vercel.app/" target="_blank" class="demo-link">
+                    <i class="fas fa-external-link-alt"></i> View Live Demo
+                </a>
+            </div>
+
+            <div class="grid-3">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h3 class="feature-title">3 Days</h3>
+                    <p>Intensive hands-on development</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <h3 class="feature-title">Full-Stack</h3>
+                    <p>Frontend & Backend integration</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h3 class="feature-title">Supabase</h3>
+                    <p>Modern database solution</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: Project Overview -->
+        <div class="slide" data-slide="2">
+            <div class="slide-header">
+                <span class="slide-number">2/19</span>
+                <h1 class="slide-title">Project Overview</h1>
+                <p class="slide-subtitle">Quick Quiz Game Features</p>
+            </div>
+
+            <div class="grid-2">
+                <div>
+                    <h3 style="margin-bottom: 1rem;">What is Quick Quiz?</h3>
+                    <p style="margin-bottom: 1.5rem;">A simple and interactive quiz game built with JavaScript, HTML, and CSS that uses Supabase as a backend database.</p>
+                    
+                    <h3 style="margin-bottom: 1rem;">Key Features</h3>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="margin-bottom: 0.5rem;">✓ Interactive quiz gameplay</li>
+                        <li style="margin-bottom: 0.5rem;">✓ Timer-based scoring system</li>
+                        <li style="margin-bottom: 0.5rem;">✓ Score leaderboard</li>
+                        <li style="margin-bottom: 0.5rem;">✓ Responsive design</li>
+                        <li style="margin-bottom: 0.5rem;">✓ Asset preloading</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 style="margin-bottom: 1rem;">Game Screens</h3>
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-day">Login Screen</div>
+                            <p>Enter your name to start playing</p>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-day">Game Screen</div>
+                            <p>Answer questions within time limit</p>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-day">Results Screen</div>
+                            <p>View score and leaderboard</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="warning-box">
+                <i class="fas fa-info-circle"></i> <strong>Note:</strong> The project is already built - you'll clone it and enhance it!
+            </div>
+        </div>
+
+        <!-- Slide 3: Technologies -->
+        <div class="slide" data-slide="3">
+            <div class="slide-header">
+                <span class="slide-number">3/19</span>
+                <h1 class="slide-title">Technologies Used</h1>
+                <p class="slide-subtitle">Modern Web Development Stack</p>
+            </div>
+
+            <div class="grid-2">
+                <div>
+                    <h3 style="margin-bottom: 1.5rem; color: var(--primary);">Frontend</h3>
+                    <div class="feature-card" style="margin-bottom: 1rem;">
+                        <h4 style="margin-bottom: 0.5rem;">HTML5</h4>
+                        <p>Semantic markup and structure</p>
+                    </div>
+                    <div class="feature-card" style="margin-bottom: 1rem;">
+                        <h4 style="margin-bottom: 0.5rem;">CSS3</h4>
+                        <p>Styling and animations</p>
+                    </div>
+                    <div class="feature-card" style="margin-bottom: 1rem;">
+                        <h4 style="margin-bottom: 0.5rem;">JavaScript ES6+</h4>
+                        <p>Game logic and interactivity</p>
+                    </div>
+                    <div class="feature-card" style="margin-bottom: 1rem;">
+                        <h4 style="margin-bottom: 0.5rem;">Webpack</h4>
+                        <p>Module bundler</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 style="margin-bottom: 1.5rem; color: var(--secondary);">Backend</h3>
+                    <div class="feature-card" style="margin-bottom: 1rem;">
+                        <h4 style="margin-bottom: 0.5rem;">Supabase</h4>
+                        <p>Backend-as-a-Service platform</p>
+                    </div>
+                    <div class="feature-card" style="margin-bottom: 1rem;">
+                        <h4 style="margin-bottom: 0.5rem;">PostgreSQL</h4>
+                        <p>Relational database</p>
+                    </div>
+                    <div class="feature-card" style="margin-bottom: 1rem;">
+                        <h4 style="margin-bottom: 0.5rem;">Row Level Security</h4>
+                        <p>Data access control</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="success-box">
+                <i class="fas fa-check-circle"></i> <strong>Prerequisites:</strong> Node.js (v14+) and npm (v6+)
+            </div>
+        </div>
+
+        <!-- Slide 4: Bootcamp Schedule -->
+        <div class="slide" data-slide="4">
+            <div class="slide-header">
+                <span class="slide-number">4/19</span>
+                <h1 class="slide-title">Bootcamp Schedule</h1>
+                <p class="slide-subtitle">3-Day Learning Journey</p>
+            </div>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-day">Day 3: Project Setup & Supabase Basics</div>
+                    <ul style="margin-left: 1rem; margin-top: 0.5rem;">
+                        <li>Introduction to the quiz game project</li>
+                        <li>Cloning the repository</li>
+                        <li>Setting up development environment</li>
+                        <li>Creating Supabase project</li>
+                        <li>Understanding database schema</li>
+                    </ul>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-day">Day 4: Database & Query Language</div>
+                    <ul style="margin-left: 1rem; margin-top: 0.5rem;">
+                        <li>PostgreSQL basics</li>
+                        <li>Creating tables with SQL</li>
+                        <li>Understanding data types</li>
+                        <li>Inserting sample questions</li>
+                        <li>Connecting frontend to Supabase</li>
+                    </ul>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-day">Day 5: Enhancements & Deployment</div>
+                    <ul style="margin-left: 1rem; margin-top: 0.5rem;">
+                        <li>Adding new features</li>
+                        <li>Difficulty selection system</li>
+                        <li>UI/UX improvements</li>
+                        <li>Deploying to Vercel</li>
+                        <li>Project presentations</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Supabase Introduction -->
+        <div class="slide" data-slide="5">
+            <div class="slide-header">
+                <span class="slide-number">5/19</span>
+                <h1 class="slide-title">Supabase Fundamentals</h1>
+                <p class="slide-subtitle">Backend-as-a-Service Platform</p>
+            </div>
+
+            <div class="highlight-box">
+                <h3 style="margin-bottom: 1rem;">What is Supabase?</h3>
+                <p style="font-size: 1.1rem;">Supabase is an open-source Firebase alternative that provides a complete backend solution for web applications.</p>
+            </div>
+
+            <div class="grid-3">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h3 class="feature-title">Database</h3>
+                    <p>PostgreSQL with real-time subscriptions</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <h3 class="feature-title">Auth</h3>
+                    <p>User authentication & authorization</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <h3 class="feature-title">Storage</h3>
+                    <p>File storage for images & assets</p>
+                </div>
+            </div>
+
+            <div class="warning-box">
+                <i class="fas fa-exclamation-triangle"></i> <strong>For this project:</strong> We're bypassing Supabase authentication for simplicity
+            </div>
+        </div>
+
+        <!-- Slide 6: PostgreSQL Basics -->
+        <div class="slide" data-slide="6">
+            <div class="slide-header">
+                <span class="slide-number">6/19</span>
+                <h1 class="slide-title">PostgreSQL Basics</h1>
+                <p class="slide-subtitle">Understanding Relational Databases</p>
+            </div>
+
+            <div class="highlight-box">
+                <h3 style="margin-bottom: 1rem;">What is PostgreSQL?</h3>
+                <p style="font-size: 1.1rem;">PostgreSQL (or "Postgres") is a powerful, open-source object-relational database system with over 30 years of active development.</p>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">Key Concepts</h3>
+            <div class="grid-2">
+                <div class="feature-card">
+                    <h4 style="margin-bottom: 0.5rem;">Tables</h4>
+                    <p>Structured collections of related data organized in rows and columns</p>
+                </div>
+                <div class="feature-card">
+                    <h4 style="margin-bottom: 0.5rem;">Primary Keys</h4>
+                    <p>Unique identifiers for each row in a table</p>
+                </div>
+                <div class="feature-card">
+                    <h4 style="margin-bottom: 0.5rem;">Foreign Keys</h4>
+                    <p>Fields that reference primary keys in other tables</p>
+                </div>
+                <div class="feature-card">
+                    <h4 style="margin-bottom: 0.5rem;">Indexes</h4>
+                    <p>Performance optimizations for faster queries</p>
+                </div>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">Why PostgreSQL for Our Quiz?</h3>
+            <ul style="margin-left: 1rem;">
+                <li style="margin-bottom: 0.5rem;">✓ Reliability and data integrity</li>
+                <li style="margin-bottom: 0.5rem;">✓ Complex query support</li>
+                <li style="margin-bottom: 0.5rem;">✓ JSON support for flexible data</li>
+                <li style="margin-bottom: 0.5rem;">✓ Scalability for growing applications</li>
+            </ul>
+        </div>
+
+        <!-- Slide 7: SQL Fundamentals -->
+        <div class="slide" data-slide="7">
+            <div class="slide-header">
+                <span class="slide-number">7/19</span>
+                <h1 class="slide-title">SQL Fundamentals</h1>
+                <p class="slide-subtitle">Structured Query Language Basics</p>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">What is SQL?</h3>
+            <p style="margin-bottom: 1.5rem;">SQL (Structured Query Language) is the standard language for managing and querying data in relational databases like PostgreSQL.</p>
+
+            <h3 style="margin-bottom: 1rem;">Core SQL Operations</h3>
+            <div class="grid-2">
+                <div class="feature-card">
+                    <h4 style="margin-bottom: 0.5rem;">DML (Data Manipulation)</h4>
+                    <p>SELECT, INSERT, UPDATE, DELETE</p>
+                </div>
+                <div class="feature-card">
+                    <h4 style="margin-bottom: 0.5rem;">DDL (Data Definition)</h4>
+                    <p>CREATE, ALTER, DROP</p>
+                </div>
+                <div class="feature-card">
+                    <h4 style="margin-bottom: 0.5rem;">DCL (Data Control)</h4>
+                    <p>GRANT, REVOKE</p>
+                </div>
+                <div class="feature-card">
+                    <h4 style="margin-bottom: 0.5rem;">TCL (Transaction Control)</h4>
+                    <p>COMMIT, ROLLBACK</p>
+                </div>
+            </div>
+
+            <div class="success-box">
+                <i class="fas fa-lightbulb"></i> <strong>Remember:</strong> SQL is declarative - you describe WHAT data you want, not HOW to get it
+            </div>
+        </div>
+
+        <!-- Slide 8: SQL CREATE Statement -->
+        <div class="slide" data-slide="8">
+            <div class="slide-header">
+                <span class="slide-number">8/19</span>
+                <h1 class="slide-title">SQL CREATE Statement</h1>
+                <p class="slide-subtitle">Creating Database Tables</p>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">CREATE TABLE Syntax</h3>
+            <div class="sql-code"><span class="sql-keyword">CREATE</span> <span class="sql-keyword">TABLE</span> table_name <span class="sql-punctuation">(</span>
+  column1 <span class="sql-type">data_type</span> <span class="sql-keyword">PRIMARY KEY</span><span class="sql-punctuation">,</span>
+  column2 <span class="sql-type">data_type</span> <span class="sql-keyword">NOT NULL</span><span class="sql-punctuation">,</span>
+  column3 <span class="sql-type">data_type</span> <span class="sql-keyword">DEFAULT</span> default_value<span class="sql-punctuation">,</span>
+  <span class="sql-operator">...</span>
+<span class="sql-punctuation">);</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Example: Creating a Users Table</h3>
+            <div class="sql-code"><span class="sql-keyword">CREATE</span> <span class="sql-keyword">TABLE</span> users <span class="sql-punctuation">(</span>
+  id <span class="sql-type">SERIAL</span> <span class="sql-keyword">PRIMARY KEY</span><span class="sql-punctuation">,</span>
+  username <span class="sql-type">VARCHAR</span><span class="sql-punctuation">(</span><span class="sql-number">50</span><span class="sql-punctuation">)</span> <span class="sql-keyword">UNIQUE</span> <span class="sql-keyword">NOT NULL</span><span class="sql-punctuation">,</span>
+  email <span class="sql-type">VARCHAR</span><span class="sql-punctuation">(</span><span class="sql-number">100</span><span class="sql-punctuation">)</span> <span class="sql-keyword">NOT NULL</span><span class="sql-punctuation">,</span>
+  created_at <span class="sql-type">TIMESTAMP</span> <span class="sql-keyword">DEFAULT</span> <span class="sql-function">CURRENT_TIMESTAMP</span>
+<span class="sql-punctuation">);</span></div>
+
+            <h3 style="margin-bottom: 1rem;">CREATE INDEX Syntax</h3>
+            <div class="sql-code"><span class="sql-keyword">CREATE</span> <span class="sql-keyword">INDEX</span> index_name 
+<span class="sql-keyword">ON</span> table_name <span class="sql-punctuation">(</span>column1<span class="sql-punctuation">,</span> column2<span class="sql-punctuation">);</span></div>
+
+            <div class="warning-box">
+                <i class="fas fa-info-circle"></i> <strong>Tip:</strong> Indexes dramatically improve query performance on large tables
+            </div>
+        </div>
+
+        <!-- Slide 9: Table Operations -->
+        <div class="slide" data-slide="9">
+            <div class="slide-header">
+                <span class="slide-number">9/19</span>
+                <h1 class="slide-title">Table Operations</h1>
+                <p class="slide-subtitle">Adding and Removing Columns</p>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">Adding Columns with ALTER TABLE</h3>
+            <div class="sql-code"><span class="sql-comment">-- Add a single column</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> table_name
+<span class="sql-keyword">ADD</span> <span class="sql-keyword">COLUMN</span> column_name <span class="sql-type">data_type</span><span class="sql-punctuation">;</span>
+
+<span class="sql-comment">-- Add multiple columns</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> table_name
+<span class="sql-keyword">ADD</span> <span class="sql-keyword">COLUMN</span> column1 <span class="sql-type">data_type</span><span class="sql-punctuation">,</span>
+<span class="sql-keyword">ADD</span> <span class="sql-keyword">COLUMN</span> column2 <span class="sql-type">data_type</span><span class="sql-punctuation">;</span>
+
+<span class="sql-comment">-- Add column with default value</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> table_name
+<span class="sql-keyword">ADD</span> <span class="sql-keyword">COLUMN</span> column_name <span class="sql-type">data_type</span> <span class="sql-keyword">DEFAULT</span> default_value<span class="sql-punctuation">;</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Modifying Columns with ALTER TABLE</h3>
+            <div class="sql-code"><span class="sql-comment">-- Change column data type</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> table_name
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">COLUMN</span> column_name <span class="sql-type">new_data_type</span><span class="sql-punctuation">;</span>
+
+<span class="sql-comment">-- Rename a column</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> table_name
+<span class="sql-keyword">RENAME</span> <span class="sql-keyword">COLUMN</span> old_name <span class="sql-keyword">TO</span> new_name<span class="sql-punctuation">;</span>
+
+<span class="sql-comment">-- Add NOT NULL constraint</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> table_name
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">COLUMN</span> column_name <span class="sql-keyword">SET</span> <span class="sql-keyword">NOT NULL</span><span class="sql-punctuation">;</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Removing Columns with ALTER TABLE</h3>
+            <div class="sql-code"><span class="sql-comment">-- Drop a single column</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> table_name
+<span class="sql-keyword">DROP</span> <span class="sql-keyword">COLUMN</span> column_name<span class="sql-punctuation">;</span>
+
+<span class="sql-comment">-- Drop multiple columns</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> table_name
+<span class="sql-keyword">DROP</span> <span class="sql-keyword">COLUMN</span> column1<span class="sql-punctuation">,</span>
+<span class="sql-keyword">DROP</span> <span class="sql-keyword">COLUMN</span> column2<span class="sql-punctuation">;</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Other Table Operations</h3>
+            <div class="sql-code"><span class="sql-comment">-- Rename a table</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> old_name <span class="sql-keyword">RENAME</span> <span class="sql-keyword">TO</span> new_name<span class="sql-punctuation">;</span>
+
+<span class="sql-comment">-- Drop a table completely</span>
+<span class="sql-keyword">DROP</span> <span class="sql-keyword">TABLE</span> <span class="sql-keyword">IF</span> <span class="sql-keyword">EXISTS</span> table_name<span class="sql-punctuation">;</span>
+
+<span class="sql-comment">-- Truncate a table (remove all data, keep structure)</span>
+<span class="sql-keyword">TRUNCATE</span> <span class="sql-keyword">TABLE</span> table_name<span class="sql-punctuation">;</span></div>
+
+            <div class="warning-box">
+                <i class="fas fa-exclamation-triangle"></i> <strong>Warning:</strong> Always backup data before performing destructive operations!
+            </div>
+        </div>
+
+        <!-- Slide 10: PostgreSQL Data Types -->
+        <div class="slide" data-slide="10">
+            <div class="slide-header">
+                <span class="slide-number">10/19</span>
+                <h1 class="slide-title">PostgreSQL Data Types</h1>
+                <p class="slide-subtitle">Choosing the Right Type for Your Data</p>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">Text/String Types</h3>
+            <div class="sql-code"><span class="sql-type">VARCHAR</span><span class="sql-punctuation">(</span>n<span class="sql-punctuation">)</span>  <span class="sql-comment">-- Variable-length string with limit</span>
+<span class="sql-type">TEXT</span>        <span class="sql-comment">-- Unlimited length string</span>
+<span class="sql-type">CHAR</span><span class="sql-punctuation">(</span>n<span class="sql-punctuation">)</span>     <span class="sql-comment">-- Fixed-length string</span>
+<span class="sql-type">CHARACTER VARYING</span><span class="sql-punctuation">(</span>n<span class="sql-punctuation">)</span> <span class="sql-comment">-- Alternative to VARCHAR</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Numeric Types</h3>
+            <div class="sql-code"><span class="sql-type">SMALLINT</span>     <span class="sql-comment">-- 2 bytes, -32,768 to 32,767</span>
+<span class="sql-type">INTEGER</span>      <span class="sql-comment">-- 4 bytes, -2,147,483,648 to 2,147,483,647</span>
+<span class="sql-type">BIGINT</span>       <span class="sql-comment">-- 8 bytes, large range integers</span>
+<span class="sql-type">DECIMAL</span><span class="sql-punctuation">(</span>p<span class="sql-punctuation">,</span>s<span class="sql-punctuation">)</span> <span class="sql-comment">-- Exact decimal numbers</span>
+<span class="sql-type">NUMERIC</span><span class="sql-punctuation">(</span>p<span class="sql-punctuation">,</span>s<span class="sql-punctuation">)</span> <span class="sql-comment">-- Alternative to DECIMAL</span>
+<span class="sql-type">REAL</span>        <span class="sql-comment">-- 4 bytes, single precision floating-point</span>
+<span class="sql-type">DOUBLE PRECISION</span> <span class="sql-comment">-- 8 bytes, double precision floating-point</span>
+<span class="sql-type">SMALLSERIAL</span>  <span class="sql-comment">-- Auto-incrementing small integer</span>
+<span class="sql-type">SERIAL</span>      <span class="sql-comment">-- Auto-incrementing integer</span>
+<span class="sql-type">BIGSERIAL</span>   <span class="sql-comment">-- Auto-incrementing big integer</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Date/Time Types</h3>
+            <div class="sql-code"><span class="sql-type">DATE</span>           <span class="sql-comment">-- Date only (year, month, day)</span>
+<span class="sql-type">TIME</span>           <span class="sql-comment">-- Time only (hour, minute, second)</span>
+<span class="sql-type">TIMESTAMP</span>      <span class="sql-comment">-- Date and time</span>
+<span class="sql-type">TIMESTAMPTZ</span>   <span class="sql-comment">-- Timestamp with time zone</span>
+<span class="sql-type">INTERVAL</span>       <span class="sql-comment">-- Time interval</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Boolean & Special Types</h3>
+            <div class="sql-code"><span class="sql-type">BOOLEAN</span>       <span class="sql-comment">-- True or False values</span>
+<span class="sql-type">UUID</span>         <span class="sql-comment">-- Universally Unique Identifier</span>
+<span class="sql-type">JSON</span>         <span class="sql-comment">-- JSON data storage</span>
+<span class="sql-type">JSONB</span>        <span class="sql-comment">-- Binary JSON (indexed)</span>
+<span class="sql-type">ARRAY</span>        <span class="sql-comment">-- Array of values</span>
+<span class="sql-type">MONEY</span>        <span class="sql-comment">-- Currency amounts</span>
+<span class="sql-type">INET</span>         <span class="sql-comment">-- IP addresses</span>
+<span class="sql-type">MACADDR</span>      <span class="sql-comment">-- MAC addresses</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Choosing the Right Type</h3>
+            <div class="grid-2">
+                <div class="feature-card">
+                    <h4 style="margin-bottom: 0.5rem;">For Names/IDs</h4>
+                    <p>Use VARCHAR with reasonable limits (50-100 chars)</p>
+                </div>
+                <div class="feature-card">
+                    <h4 style="margin-bottom: 0.5rem;">For Descriptions</h4>
+                    <p>Use TEXT for long content, VARCHAR for short</p>
+                </div>
+                <div class="feature-card">
+                    <h4 style="margin-bottom: 0.5rem;">For Numbers</h4>
+                    <p>Use INTEGER for counts, DECIMAL for money</p>
+                </div>
+                <div class="feature-card">
+                    <h4 style="margin-bottom: 0.5rem;">For Dates</h4>
+                    <p>Use TIMESTAMPTZ for user input, TIMESTAMP for system</p>
+                </div>
+            </div>
+
+            <div class="success-box">
+                <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> Use the most specific type that fits your data to optimize storage
+            </div>
+        </div>
+
+        <!-- Slide 11: SQL INSERT Statement -->
+        <div class="slide" data-slide="11">
+            <div class="slide-header">
+                <span class="slide-number">11/19</span>
+                <h1 class="slide-title">SQL INSERT Statement</h1>
+                <p class="slide-subtitle">Adding Data to Tables</p>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">INSERT INTO Syntax</h3>
+            <div class="sql-code"><span class="sql-keyword">INSERT</span> <span class="sql-keyword">INTO</span> table_name <span class="sql-punctuation">(</span>column1<span class="sql-punctuation">,</span> column2<span class="sql-punctuation">,</span> <span class="sql-operator">...</span><span class="sql-punctuation">)</span>
+<span class="sql-keyword">VALUES</span> <span class="sql-punctuation">(</span>value1<span class="sql-punctuation">,</span> value2<span class="sql-punctuation">,</span> <span class="sql-operator">...</span><span class="sql-punctuation">);</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Example: Inserting a Single Row</h3>
+            <div class="sql-code"><span class="sql-keyword">INSERT</span> <span class="sql-keyword">INTO</span> questions <span class="sql-punctuation">(</span>question_text<span class="sql-punctuation">,</span> correct_answer<span class="sql-punctuation">,</span> option_a<span class="sql-punctuation">,</span> option_b<span class="sql-punctuation">)</span>
+<span class="sql-keyword">VALUES</span> <span class="sql-punctuation">(</span><span class="sql-string">'What is the capital of France?'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Paris'</span><span class="sql-punctuation">,</span> <span class="sql-string">'London'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Berlin'</span><span class="sql-punctuation">);</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Example: Inserting Multiple Rows</h3>
+            <div class="sql-code"><span class="sql-keyword">INSERT</span> <span class="sql-keyword">INTO</span> questions <span class="sql-punctuation">(</span>question_text<span class="sql-punctuation">,</span> correct_answer<span class="sql-punctuation">,</span> option_a<span class="sql-punctuation">,</span> option_b<span class="sql-punctuation">)</span>
+<span class="sql-keyword">VALUES</span>
+  <span class="sql-punctuation">(</span><span class="sql-string">'What is the capital of France?'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Paris'</span><span class="sql-punctuation">,</span> <span class="sql-string">'London'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Berlin'</span><span class="sql-punctuation">),</span>
+  <span class="sql-punctuation">(</span><span class="sql-string">'What is 2 + 2?'</span><span class="sql-punctuation">,</span> <span class="sql-string">'4'</span><span class="sql-punctuation">,</span> <span class="sql-string">'3'</span><span class="sql-punctuation">,</span> <span class="sql-string">'5'</span><span class="sql-punctuation">),</span>
+  <span class="sql-punctuation">(</span><span class="sql-string">'What is the capital of Spain?'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Madrid'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Barcelona'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Valencia'</span><span class="sql-punctuation">);</span></div>
+
+            <h3 style="margin-bottom: 1rem;">INSERT with SELECT (Copy Data)</h3>
+            <div class="sql-code"><span class="sql-comment">-- Copy data from one table to another</span>
+<span class="sql-keyword">INSERT</span> <span class="sql-keyword">INTO</span> new_table <span class="sql-punctuation">(</span>column1<span class="sql-punctuation">,</span> column2<span class="sql-punctuation">)</span>
+<span class="sql-keyword">SELECT</span> column1<span class="sql-punctuation">,</span> column2 <span class="sql-keyword">FROM</span> source_table
+<span class="sql-keyword">WHERE</span> condition<span class="sql-punctuation">;</span></div>
+
+            <div class="success-box">
+                <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> String values must be enclosed in single quotes in SQL
+            </div>
+        </div>
+
+        <!-- Slide 12: SQL UPDATE & DELETE Statements -->
+        <div class="slide" data-slide="12">
+            <div class="slide-header">
+                <span class="slide-number">12/19</span>
+                <h1 class="slide-title">SQL UPDATE & DELETE Statements</h1>
+                <p class="slide-subtitle">Modifying and Removing Data</p>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">UPDATE Syntax</h3>
+            <div class="sql-code"><span class="sql-keyword">UPDATE</span> table_name
+<span class="sql-keyword">SET</span> column1 <span class="sql-operator">=</span> value1<span class="sql-punctuation">,</span> column2 <span class="sql-operator">=</span> value2
+<span class="sql-keyword">WHERE</span> condition<span class="sql-punctuation">;</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Example: Updating a Question</h3>
+            <div class="sql-code"><span class="sql-keyword">UPDATE</span> questions
+<span class="sql-keyword">SET</span> question_text <span class="sql-operator">=</span> <span class="sql-string">'What is the capital of Spain?'</span>
+<span class="sql-keyword">WHERE</span> id <span class="sql-operator">=</span> <span class="sql-number">5</span><span class="sql-punctuation">;</span></div>
+
+            <h3 style="margin-bottom: 1rem;">DELETE Syntax</h3>
+            <div class="sql-code"><span class="sql-keyword">DELETE</span> <span class="sql-keyword">FROM</span> table_name
+<span class="sql-keyword">WHERE</span> condition<span class="sql-punctuation">;</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Example: Deleting a Question</h3>
+            <div class="sql-code"><span class="sql-keyword">DELETE</span> <span class="sql-keyword">FROM</span> questions
+<span class="sql-keyword">WHERE</span> id <span class="sql-operator">=</span> <span class="sql-number">3</span><span class="sql-punctuation">;</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Advanced Examples</h3>
+            <div class="sql-code"><span class="sql-comment">-- Update multiple rows</span>
+<span class="sql-keyword">UPDATE</span> scores
+<span class="sql-keyword">SET</span> score <span class="sql-operator">=</span> score <span class="sql-operator">*</span> <span class="sql-number">1.1</span>
+<span class="sql-keyword">WHERE</span> player_name <span class="sql-operator">=</span> <span class="sql-string">'Alice'</span><span class="sql-punctuation">;</span>
+
+<span class="sql-comment">-- Delete multiple rows</span>
+<span class="sql-keyword">DELETE</span> <span class="sql-keyword">FROM</span> scores
+<span class="sql-keyword">WHERE</span> score <span class="sql-operator">&lt;</span> <span class="sql-number">50</span><span class="sql-punctuation">;</span>
+
+<span class="sql-comment">-- Delete all rows (dangerous!)</span>
+<span class="sql-keyword">DELETE</span> <span class="sql-keyword">FROM</span> table_name<span class="sql-punctuation">;</span></div>
+
+            <div class="warning-box">
+                <i class="fas fa-exclamation-triangle"></i> <strong>Warning:</strong> Always use WHERE with UPDATE/DELETE unless you want to modify/delete ALL rows!
+            </div>
+        </div>
+
+        <!-- Slide 13: SQL ALTER Statement -->
+        <div class="slide" data-slide="13">
+            <div class="slide-header">
+                <span class="slide-number">13/19</span>
+                <h1 class="slide-title">SQL ALTER Statement</h1>
+                <p class="slide-subtitle">Modifying Table Structure</p>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">ALTER TABLE Syntax</h3>
+            <div class="sql-code"><span class="sql-comment">-- Add a new column</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> table_name
+<span class="sql-keyword">ADD</span> <span class="sql-keyword">COLUMN</span> column_name <span class="sql-type">data_type</span><span class="sql-punctuation">;</span>
+
+<span class="sql-comment">-- Modify an existing column</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> table_name
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">COLUMN</span> column_name <span class="sql-type">data_type</span><span class="sql-punctuation">;</span>
+
+<span class="sql-comment">-- Drop a column</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> table_name
+<span class="sql-keyword">DROP</span> <span class="sql-keyword">COLUMN</span> column_name<span class="sql-punctuation">;</span>
+
+<span class="sql-comment">-- Rename a table</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> old_name <span class="sql-keyword">RENAME</span> <span class="sql-keyword">TO</span> new_name<span class="sql-punctuation">;</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Example: Adding a Column</h3>
+            <div class="sql-code"><span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> questions
+<span class="sql-keyword">ADD</span> <span class="sql-keyword">COLUMN</span> difficulty <span class="sql-type">VARCHAR</span><span class="sql-punctuation">(</span><span class="sql-number">10</span><span class="sql-punctuation">)</span> <span class="sql-keyword">DEFAULT</span> <span class="sql-string">'medium'</span><span class="sql-punctuation">;</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Example: Changing a Column Type</h3>
+            <div class="sql-code"><span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> scores
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">COLUMN</span> score <span class="sql-type">INTEGER</span><span class="sql-punctuation">;</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Example: Adding Constraints</h3>
+            <div class="sql-code"><span class="sql-comment">-- Add NOT NULL constraint</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> questions
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">COLUMN</span> question_text <span class="sql-keyword">SET</span> <span class="sql-keyword">NOT NULL</span><span class="sql-punctuation">;</span>
+
+<span class="sql-comment">-- Add UNIQUE constraint</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> users
+<span class="sql-keyword">ADD</span> <span class="sql-keyword">CONSTRAINT</span> unique_email <span class="sql-keyword">UNIQUE</span> <span class="sql-punctuation">(</span>email<span class="sql-punctuation">);</span>
+
+<span class="sql-comment">-- Add CHECK constraint</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> scores
+<span class="sql-keyword">ADD</span> <span class="sql-keyword">CONSTRAINT</span> valid_score <span class="sql-keyword">CHECK</span> <span class="sql-punctuation">(</span>score <span class="sql-operator">>=</span> <span class="sql-number">0</span><span class="sql-punctuation">);</span></div>
+
+            <div class="success-box">
+                <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> Be careful with ALTER on production tables - it can lock the table
+            </div>
+        </div>
+
+        <!-- Slide 14: Row Level Security -->
+        <div class="slide" data-slide="14">
+            <div class="slide-header">
+                <span class="slide-number">14/19</span>
+                <h1 class="slide-title">Row Level Security</h1>
+                <p class="slide-subtitle">Controlling Data Access</p>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">What is RLS?</h3>
+            <p style="margin-bottom: 1.5rem;">Row Level Security (RLS) is a PostgreSQL feature that allows you to define policies that control access to rows in a table based on user attributes.</p>
+
+            <h3 style="margin-bottom: 1rem;">Enabling RLS</h3>
+            <div class="sql-code"><span class="sql-comment">-- Enable RLS on a table</span>
+<span class="sql-keyword">ALTER</span> <span class="sql-keyword">TABLE</span> table_name <span class="sql-keyword">ENABLE</span> <span class="sql-keyword">ROW</span> <span class="sql-keyword">LEVEL</span> <span class="sql-keyword">SECURITY</span><span class="sql-punctuation">;</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Creating Policies</h3>
+            <div class="sql-code"><span class="sql-comment">-- Create a policy that allows users to see their own data</span>
+<span class="sql-keyword">CREATE</span> <span class="sql-keyword">POLICY</span> <span class="sql-string">"Users can view their own data"</span>
+<span class="sql-keyword">ON</span> table_name
+<span class="sql-keyword">FOR</span> <span class="sql-keyword">SELECT</span>
+<span class="sql-keyword">USING</span> <span class="sql-punctuation">(</span>user_id <span class="sql-operator">=</span> auth.uid<span class="sql-punctuation">());</span>
+
+<span class="sql-comment">-- Create a policy that allows users to update their own data</span>
+<span class="sql-keyword">CREATE</span> <span class="sql-keyword">POLICY</span> <span class="sql-string">"Users can update their own data"</span>
+<span class="sql-keyword">ON</span> table_name
+<span class="sql-keyword">FOR</span> <span class="sql-keyword">UPDATE</span>
+<span class="sql-keyword">USING</span> <span class="sql-punctuation">(</span>user_id <span class="sql-operator">=</span> auth.uid<span class="sql-punctuation">());</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Policy Examples</h3>
+            <div class="sql-code"><span class="sql-comment">-- Allow read access to authenticated users</span>
+<span class="sql-keyword">CREATE</span> <span class="sql-keyword">POLICY</span> <span class="sql-string">"Authenticated users can read"</span>
+<span class="sql-keyword">ON</span> table_name
+<span class="sql-keyword">FOR</span> <span class="sql-keyword">SELECT</span>
+<span class="sql-keyword">USING</span> <span class="sql-punctuation">(</span>auth.role<span class="sql-operator">=</span> <span class="sql-string">'authenticated'</span><span class="sql-punctuation">);</span>
+
+<span class="sql-comment">-- Allow all operations for specific users</span>
+<span class="sql-keyword">CREATE</span> <span class="sql-keyword">POLICY</span> <span class="sql-string">"Admins can do anything"</span>
+<span class="sql-keyword">ON</span> table_name
+<span class="sql-keyword">FOR</span> <span class="sql-keyword">ALL</span>
+<span class="sql-keyword">USING</span> <span class="sql-punctuation">(</span>auth.role <span class="sql-operator">=</span> <span class="sql-string">'admin'</span><span class="sql-punctuation">);</span>
+
+<span class="sql-comment">-- Allow operations based on data values</span>
+<span class="sql-keyword">CREATE</span> <span class="sql-keyword">POLICY</span> <span class="sql-string">"Users can edit their own posts"</span>
+<span class="sql-keyword">ON</span> posts
+<span class="sql-keyword">FOR</span> <span class="sql-keyword">UPDATE</span>
+<span class="sql-keyword">USING</span> <span class="sql-punctuation">(</span>author_id <span class="sql-operator">=</span> auth.uid<span class="sql-punctuation">);</span></div>
+
+            <h3 style="margin-bottom: 1rem;">For Our Quiz Game</h3>
+            <p style="margin-bottom: 1rem;">Since we're bypassing authentication, we'll use simple policies:</p>
+            <div class="sql-code"><span class="sql-comment">-- Allow all operations for everyone</span>
+<span class="sql-keyword">CREATE</span> <span class="sql-keyword">POLICY</span> <span class="sql-string">"Allow all operations"</span>
+<span class="sql-keyword">ON</span> questions
+<span class="sql-keyword">FOR</span> <span class="sql-keyword">ALL</span>
+<span class="sql-keyword">USING</span> <span class="sql-punctuation">(</span><span class="sql-keyword">true</span><span class="sql-punctuation">);</span></div>
+
+            <div class="warning-box">
+                <i class="fas fa-info-circle"></i> <strong>Important:</strong> RLS policies must be created after enabling RLS on table
+            </div>
+        </div>
+
+        <!-- Slide 15: Supabase Connection -->
+        <div class="slide" data-slide="15">
+            <div class="slide-header">
+                <span class="slide-number">15/19</span>
+                <h1 class="slide-title">Supabase Connection</h1>
+                <p class="slide-subtitle">Connecting Frontend to Database</p>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">Environment Variables</h3>
+            <p style="margin-bottom: 1.5rem;">Supabase uses environment variables to securely connect your frontend to your backend database.</p>
+
+            <h3 style="margin-bottom: 1rem;">Required Environment Variables</h3>
+            <div class="sql-code"><span class="sql-comment"># .env file</span>
+SUPABASE_URL<span class="sql-operator">=</span>your_supabase_project_url
+SUPABASE_ANON_KEY<span class="sql-operator">=</span>your_supabase_anon_key</div>
+
+            <h3 style="margin-bottom: 1rem;">Finding Your Credentials</h3>
+            <ol style="margin-left: 1rem;">
+                <li style="margin-bottom: 0.5rem;">Go to your Supabase project dashboard</li>
+                <li style="margin-bottom: 0.5rem;">Navigate to Settings → API</li>
+                <li style="margin-bottom: 0.5rem;">Copy Project URL and anon public key</li>
+            </ol>
+
+            <h3 style="margin-bottom: 1rem;">JavaScript Client Setup</h3>
+            <div class="sql-code"><span class="sql-comment">// Install Supabase JavaScript client</span>
+npm install @supabase/supabase-js
+
+<span class="sql-comment">// Initialize client</span>
+<span class="sql-keyword">import</span> <span class="sql-punctuation">{</span> createClient <span class="sql-punctuation">}</span> <span class="sql-keyword">from</span> <span class="sql-string">'@supabase/supabase-js'</span>
+
+<span class="sql-keyword">const</span> supabase <span class="sql-operator">=</span> createClient<span class="sql-punctuation">(</span>
+  process.env.SUPABASE_URL<span class="sql-punctuation">,</span>
+  process.env.SUPABASE_ANON_KEY
+<span class="sql-punctuation">);</span></div>
+
+            <div class="success-box">
+                <i class="fas fa-lightbulb"></i> <strong>Security Note:</strong> The anon key allows public access but respects RLS policies
+            </div>
+        </div>
+
+        <!-- Slide 16: Supabase Data Operations -->
+        <div class="slide" data-slide="16">
+            <div class="slide-header">
+                <span class="slide-number">16/19</span>
+                <h1 class="slide-title">Supabase Data Operations</h1>
+                <p class="slide-subtitle">CRUD Operations with Supabase</p>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">Reading Data (SELECT)</h3>
+            <div class="sql-code"><span class="sql-comment">// Fetch all questions</span>
+<span class="sql-keyword">const</span> <span class="sql-punctuation">{</span> data<span class="sql-punctuation">,</span> error <span class="sql-punctuation">}</span> <span class="sql-operator">=</span> <span class="sql-keyword">await</span> supabase
+  .<span class="sql-keyword">from</span><span class="sql-punctuation">(</span><span class="sql-string">'questions'</span><span class="sql-punctuation">)</span>
+  .<span class="sql-keyword">select</span><span class="sql-punctuation">(</span><span class="sql-operator">*</span><span class="sql-punctuation">);</span>
+
+<span class="sql-comment">// Fetch specific columns</span>
+<span class="sql-keyword">const</span> <span class="sql-punctuation">{</span> data <span class="sql-punctuation">}</span> <span class="sql-operator">=</span> <span class="sql-keyword">await</span> supabase
+  .<span class="sql-keyword">from</span><span class="sql-punctuation">(</span><span class="sql-string">'questions'</span><span class="sql-punctuation">)</span>
+  .<span class="sql-keyword">select</span><span class="sql-punctuation">(</span><span class="sql-string">'id'</span><span class="sql-punctuation">,</span> <span class="sql-string">'question_text'</span><span class="sql-punctuation">,</span> <span class="sql-string">'correct_answer'</span><span class="sql-punctuation">);</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Creating Data (INSERT)</h3>
+            <div class="sql-code"><span class="sql-comment">// Insert a new question</span>
+<span class="sql-keyword">const</span> <span class="sql-punctuation">{</span> data<span class="sql-punctuation">,</span> error <span class="sql-punctuation">}</span> <span class="sql-operator">=</span> <span class="sql-keyword">await</span> supabase
+  .<span class="sql-keyword">from</span><span class="sql-punctuation">(</span><span class="sql-string">'questions'</span><span class="sql-punctuation">)</span>
+  .<span class="sql-keyword">insert</span><span class="sql-punctuation">([</span>
+    <span class="sql-punctuation">{</span>
+      question_text: <span class="sql-string">'What is the capital of Japan?'</span><span class="sql-punctuation">,</span>
+      correct_answer: <span class="sql-string">'Tokyo'</span><span class="sql-punctuation">,</span>
+      option_a: <span class="sql-string">'Seoul'</span><span class="sql-punctuation">,</span>
+      option_b: <span class="sql-string">'Beijing'</span>
+    <span class="sql-punctuation">}</span>
+  <span class="sql-punctuation">]);</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Updating Data (UPDATE)</h3>
+            <div class="sql-code"><span class="sql-comment">// Update a question</span>
+<span class="sql-keyword">const</span> <span class="sql-punctuation">{</span> data<span class="sql-punctuation">,</span> error <span class="sql-punctuation">}</span> <span class="sql-operator">=</span> <span class="sql-keyword">await</span> supabase
+  .<span class="sql-keyword">from</span><span class="sql-punctuation">(</span><span class="sql-string">'questions'</span><span class="sql-punctuation">)</span>
+  .<span class="sql-keyword">update</span><span class="sql-punctuation">({</span> question_text: <span class="sql-string">'Updated question text?'</span> <span class="sql-punctuation">})</span>
+  .<span class="sql-keyword">eq</span><span class="sql-punctuation">(</span><span class="sql-string">'id'</span><span class="sql-punctuation">,</span> <span class="sql-number">1</span><span class="sql-punctuation">);</span></div>
+
+            <div class="warning-box">
+                <i class="fas fa-info-circle"></i> <strong>Tip:</strong> Supabase methods return a Promise with { data, error } object
+            </div>
+        </div>
+
+        <!-- Slide 17: Project Setup -->
+        <div class="slide" data-slide="17">
+            <div class="slide-header">
+                <span class="slide-number">17/19</span>
+                <h1 class="slide-title">Project Setup</h1>
+                <p class="slide-subtitle">Getting Started</p>
+            </div>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-day">Step 1: Clone Repository</div>
+                    <div class="sql-code">git clone https://github.com/your-repo/quiz-game.git
+cd quiz-game</div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-day">Step 2: Install Dependencies</div>
+                    <div class="sql-code">npm install</div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-day">Step 3: Environment Variables</div>
+                    <p>Create .env file:</p>
+                    <div class="sql-code">SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_key</div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-day">Step 4: Start Development</div>
+                    <div class="sql-code">npm run dev</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 18: Database Schema -->
+        <div class="slide" data-slide="18">
+            <div class="slide-header">
+                <span class="slide-number">18/19</span>
+                <h1 class="slide-title">Database Schema</h1>
+                <p class="slide-subtitle">Quiz Game Data Structure</p>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">Questions Table</h3>
+            <div class="sql-code"><span class="sql-keyword">CREATE</span> <span class="sql-keyword">TABLE</span> questions <span class="sql-punctuation">(</span>
+  id <span class="sql-type">SERIAL</span> <span class="sql-keyword">PRIMARY KEY</span><span class="sql-punctuation">,</span>
+  created_at <span class="sql-type">TIMESTAMP WITH TIME ZONE</span> <span class="sql-keyword">DEFAULT</span> <span class="sql-function">NOW</span><span class="sql-punctuation">(),</span>
+  image_url <span class="sql-type">TEXT</span><span class="sql-punctuation">,</span>
+  correct_answer <span class="sql-type">TEXT</span> <span class="sql-keyword">NOT NULL</span><span class="sql-punctuation">,</span>
+  option_b <span class="sql-type">TEXT</span> <span class="sql-keyword">NOT NULL</span><span class="sql-punctuation">,</span>
+  option_c <span class="sql-type">TEXT</span> <span class="sql-keyword">NOT NULL</span><span class="sql-punctuation">,</span>
+  option_d <span class="sql-type">TEXT</span> <span class="sql-keyword">NOT NULL</span>
+<span class="sql-punctuation">);</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Scores Table</h3>
+            <div class="sql-code"><span class="sql-keyword">CREATE</span> <span class="sql-keyword">TABLE</span> scores <span class="sql-punctuation">(</span>
+  id <span class="sql-type">SERIAL</span> <span class="sql-keyword">PRIMARY KEY</span><span class="sql-punctuation">,</span>
+  created_at <span class="sql-type">TIMESTAMP WITH TIME ZONE</span> <span class="sql-keyword">DEFAULT</span> <span class="sql-function">NOW</span><span class="sql-punctuation">(),</span>
+  player_name <span class="sql-type">VARCHAR</span><span class="sql-punctuation">(</span><span class="sql-number">50</span><span class="sql-punctuation">)</span> <span class="sql-keyword">NOT NULL</span><span class="sql-punctuation">,</span>
+  score <span class="sql-type">INTEGER</span> <span class="sql-keyword">NOT NULL</span>
+<span class="sql-punctuation">);</span></div>
+
+            <h3 style="margin-bottom: 1rem;">Sample Questions</h3>
+            <div class="sql-code"><span class="sql-keyword">INSERT</span> <span class="sql-keyword">INTO</span> questions <span class="sql-punctuation">(</span>image_url<span class="sql-punctuation">,</span> correct_answer<span class="sql-punctuation">,</span> option_b<span class="sql-punctuation">,</span> option_c<span class="sql-punctuation">,</span> option_d<span class="sql-punctuation">)</span> 
+<span class="sql-keyword">VALUES</span>
+  <span class="sql-punctuation">(</span><span class="sql-string">'https://.../newyork.jpg'</span><span class="sql-punctuation">,</span> <span class="sql-string">'New York'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Chicago'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Boston'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Toronto'</span><span class="sql-punctuation">),</span>
+  <span class="sql-punctuation">(</span><span class="sql-string">'https://.../paris.jpg'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Paris'</span><span class="sql-punctuation">,</span> <span class="sql-string">'London'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Berlin'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Madrid'</span><span class="sql-punctuation">),</span>
+  <span class="sql-punctuation">(</span><span class="sql-string">'https://.../rome.jpg'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Rome'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Milan'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Naples'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Barcelona'</span><span class="sql-punctuation">),</span>
+  <span class="sql-punctuation">(</span><span class="sql-string">'https://.../tokyo.jpg'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Tokyo'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Seoul'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Beijing'</span><span class="sql-punctuation">,</span> <span class="sql-string">'Bangkok'</span><span class="sql-punctuation">);</span></div>
+
+            <div class="success-box">
+                <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> Use Supabase Storage to host your quiz images
+            </div>
+        </div>
+
+        <!-- Slide 19: Bootcamp Tasks -->
+        <div class="slide" data-slide="19">
+            <div class="slide-header">
+                <span class="slide-number">19/19</span>
+                <h1 class="slide-title">Bootcamp Tasks</h1>
+                <p class="slide-subtitle">Required & Advanced Features</p>
+            </div>
+
+            <h3 style="margin-bottom: 1rem;">Required Tasks</h3>
+            <ul class="task-list">
+                <li class="task-item">
+                    <div class="task-title">
+                        Database Setup
+                        <span class="task-difficulty difficulty-beginner">Beginner</span>
+                    </div>
+                    <p>Create database and insert 10+ questions</p>
+                </li>
+                <li class="task-item">
+                    <div class="task-title">
+                        Header & Footer
+                        <span class="task-difficulty difficulty-beginner">Beginner</span>
+                    </div>
+                    <p>Add navigation and project information</p>
+                </li>
+                <li class="task-item">
+                    <div class="task-title">
+                        Styling Improvements
+                        <span class="task-difficulty difficulty-beginner">Beginner</span>
+                    </div>
+                    <p>Enhance visual design and animations</p>
+                </li>
+            </ul>
+
+            <h3 style="margin-bottom: 1rem;">Advanced Tasks</h3>
+            <ul class="task-list">
+                <li class="task-item">
+                    <div class="task-title">
+                        Difficulty Selection
+                        <span class="task-difficulty difficulty-intermediate">Intermediate</span>
+                    </div>
+                    <p>Add easy/medium/hard modes with different timers</p>
+                </li>
+                <li class="task-item">
+                    <div class="task-title">
+                        Question Categories
+                        <span class="task-difficulty difficulty-intermediate">Intermediate</span>
+                    </div>
+                    <p>Group questions by topic (Geography, History, etc.)</p>
+                </li>
+            </ul>
+
+            <div class="highlight-box">
+                <h2 style="margin-bottom: 1rem;">Submission Requirements</h2>
+                <ul style="list-style: none; padding: 0; font-size: 1.1rem;">
+                    <li style="margin-bottom: 0.75rem;">🔗 Deployed project on Vercel</li>
+                    <li style="margin-bottom: 0.75rem;">📁 GitHub repository link</li>
+                    <li style="margin-bottom: 0.75rem;">📝 Feature description</li>
+                    <li style="margin-bottom: 0.75rem;">💡 Challenges faced & solutions</li>
+                </ul>
+            </div>
+
+            <div class="success-box" style="margin-top: 2rem;">
+                <i class="fas fa-trophy"></i> <strong>Remember:</strong> Quality over quantity! A polished project with basic features is better than a buggy project with many features.
+            </div>
+
+            <div style="text-align: center; margin-top: 3rem;">
+                <h2 style="color: var(--primary); margin-bottom: 1rem;">Good Luck! 🚀</h2>
+                <p style="font-size: 1.25rem;">Let's build something amazing!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="nav-controls">
+        <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+
+    <!-- TOC Toggle -->
+    <button class="toc-toggle" id="tocToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Table of Contents Sidebar -->
+    <div class="toc-sidebar" id="tocSidebar">
+        <div class="toc-header">
+            <button class="toc-close" id="tocClose">
+                <i class="fas fa-times"></i>
+            </button>
+            <h2 class="toc-title">Table of Contents</h2>
+            <p>Navigate through slides</p>
+        </div>
+        <div class="toc-list" id="tocList">
+            <!-- TOC items will be generated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Overlay for closing TOC -->
+    <div class="toc-overlay" id="tocOverlay"></div>
+
+    <!-- Keyboard hint -->
+    <div class="keyboard-hint">
+        Use ← → arrow keys to navigate | Press 'T' to toggle TOC
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = document.querySelectorAll('.slide').length;
+        const slides = document.querySelectorAll('.slide');
+        const progressFill = document.getElementById('progressFill');
+        const tocToggle = document.getElementById('tocToggle');
+        const tocSidebar = document.getElementById('tocSidebar');
+        const tocClose = document.getElementById('tocClose');
+        const tocOverlay = document.getElementById('tocOverlay');
+        const tocList = document.getElementById('tocList');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        // Initialize TOC
+        function initializeTOC() {
+            const slideTitles = [
+                'Title & Introduction',
+                'Project Overview',
+                'Technologies Used',
+                'Bootcamp Schedule',
+                'Supabase Fundamentals',
+                'PostgreSQL Basics',
+                'SQL Fundamentals',
+                'SQL CREATE Statement',
+                'Table Operations',
+                'PostgreSQL Data Types',
+                'SQL INSERT Statement',
+                'SQL UPDATE & DELETE Statements',
+                'SQL ALTER Statement',
+                'Row Level Security',
+                'Supabase Connection',
+                'Supabase Data Operations',
+                'Project Setup',
+                'Database Schema',
+                'Bootcamp Tasks'
+            ];
+
+            slideTitles.forEach((title, index) => {
+                const tocItem = document.createElement('div');
+                tocItem.className = 'toc-item';
+                if (index === 0) tocItem.classList.add('active');
+                tocItem.innerHTML = `
+                    <span class="toc-number">${index + 1}</span>
+                    <span>${title}</span>
+                `;
+                tocItem.onclick = () => goToSlide(index + 1);
+                tocList.appendChild(tocItem);
+            });
+        }
+
+        // Update slide display
+        function updateSlide() {
+            slides.forEach((slide, index) => {
+                slide.classList.remove('active', 'prev');
+                if (index + 1 === currentSlide) {
+                    slide.classList.add('active');
+                } else if (index + 1 < currentSlide) {
+                    slide.classList.add('prev');
+                }
+            });
+
+            // Update progress bar
+            const progress = (currentSlide / totalSlides) * 100;
+            progressFill.style.width = `${progress}%`;
+
+            // Update TOC
+            const tocItems = document.querySelectorAll('.toc-item');
+            tocItems.forEach((item, index) => {
+                item.classList.toggle('active', index + 1 === currentSlide);
+            });
+
+            // Update navigation buttons
+            prevBtn.disabled = currentSlide === 1;
+            nextBtn.disabled = currentSlide === totalSlides;
+        }
+
+        // Change slide
+        function changeSlide(direction) {
+            const newSlide = currentSlide + direction;
+            if (newSlide >= 1 && newSlide <= totalSlides) {
+                currentSlide = newSlide;
+                updateSlide();
+            }
+        }
+
+        // Go to specific slide
+        function goToSlide(slideNumber) {
+            currentSlide = slideNumber;
+            updateSlide();
+            closeTOC();
+        }
+
+        // Toggle TOC
+        function toggleTOC() {
+            const isOpen = tocSidebar.classList.contains('open');
+            
+            if (isOpen) {
+                closeTOC();
+            } else {
+                openTOC();
+            }
+        }
+
+        // Open TOC
+        function openTOC() {
+            tocSidebar.classList.add('open');
+            tocOverlay.classList.add('active');
+            tocToggle.classList.add('active');
+            // Only prevent scrolling on body when TOC is open
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close TOC
+        function closeTOC() {
+            tocSidebar.classList.remove('open');
+            tocOverlay.classList.remove('active');
+            tocToggle.classList.remove('active');
+            // Restore scrolling when TOC is closed
+            document.body.style.overflow = '';
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') changeSlide(1);
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+            if (e.key === 'Escape') closeTOC();
+            if (e.key === 't' || e.key === 'T') toggleTOC();
+        });
+
+        // Event listeners
+        tocToggle.addEventListener('click', toggleTOC);
+        tocClose.addEventListener('click', closeTOC);
+        tocOverlay.addEventListener('click', closeTOC);
+        prevBtn.addEventListener('click', () => changeSlide(-1));
+        nextBtn.addEventListener('click', () => changeSlide(1));
+
+        // Touch/swipe support for mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            if (touchEndX < touchStartX - 50) changeSlide(1); // Swipe left
+            if (touchEndX > touchStartX + 50) changeSlide(-1); // Swipe right
+        }
+
+        // Initialize
+        initializeTOC();
+        updateSlide();
+
+        // Hide keyboard hint after first interaction
+        let hintHidden = false;
+        document.addEventListener('keydown', () => {
+            if (!hintHidden) {
+                document.querySelector('.keyboard-hint').style.display = 'none';
+                hintHidden = true;
+            }
+        });
+
+        document.addEventListener('click', () => {
+            if (!hintHidden) {
+                document.querySelector('.keyboard-hint').style.display = 'none';
+                hintHidden = true;
+            }
+        });
+    </script>
+</body>
+</html>
